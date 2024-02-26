@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <error.h>
 
 #define TAMANHO_NOME 50
 #define TAMANHO_LISTA 50
@@ -30,19 +31,19 @@ typedef struct objetos OBJETOS;
 
 OBJETO criaObjeto(char* nome);
 
-void adicionaObjeto(OBJETO* objeto, OBJETO lista[], int* tamanho);
+void adicionaObjeto(OBJETO objeto, OBJETOS* objetos);
 
-void listarObjetos(OBJETO lista[], int* tamanho);
+char* listarObjetos(OBJETOS objetos);
 
-int buscaObjeto(OBJETO* objeto, OBJETO lista[], int* tamanho); 
+int buscaObjeto(OBJETO* objeto, OBJETOS objetos); 
 
-void deletaObjeto(int indice, OBJETO lista[], int* tamanho);
+void deletaObjeto(int indice, OBJETOS* objetos);
 
-void modificaObjeto(char* novoNome, int indice, OBJETO lista[]);
+void modificaObjeto(char* novoNome, int indice, OBJETOS* objetos);
 
-void criaArquivo(OBJETOS lista, ARQUIVO arquivo);
+void criaArquivo(OBJETOS lista, ARQUIVO* arquivo);
 
-void mostraArquivo(FILE* f);
+void mostraArquivo(ARQUIVO arquivo);
 
 void pulalinha(){
     printf("\n\n");
@@ -50,99 +51,114 @@ void pulalinha(){
 
 int main(){
   
-  char* nomes[5] = {"Clara", "Rafael", "Jose", "Clarice", "Joao"};
+  char* nomes[7] = {"Clara", "Rafael", "Jose", "Clarice", "Joao", "Valdsnei", "maria"};
 
   OBJETO objeto = {0};
-  OBJETOS objetos = {0};
+  OBJETOS objetos = {.lista = {{{0}}}, .tamanholista = 0};
+  ARQUIVO arquivo = {.nome = "objetos.txt"};
 
 
-  for(int i = 0; i < 5; i++){
+  for(int i = 0; i < 7; i++){
     objeto = criaObjeto(nomes[i]);
-    adicionaObjeto(&objeto, objetos.lista, &objetos.tamanholista);
+    adicionaObjeto(objeto, &objetos);
   }
 
-  listarObjetos(objetos.lista, &objetos.tamanholista);
+  listarObjetos(objetos);
 
   pulalinha();
 
-  modificaObjeto("Margarida", buscaObjeto(&objetos.lista[3], objetos.lista, &objetos.tamanholista), objetos.lista); 
+  modificaObjeto("Margarida", buscaObjeto(&objetos.lista[3], objetos), &objetos); 
 
   pulalinha();
 
-  listarObjetos(objetos.lista, &objetos.tamanholista);
+  listarObjetos(objetos);
 
   pulalinha();
 
-  deletaObjeto(buscaObjeto(&objetos.lista[3], objetos.lista, &objetos.tamanholista), objetos.lista, &objetos.tamanholista);
+  deletaObjeto(buscaObjeto(&objetos.lista[3], objetos), &objetos);
 
   pulalinha();
 
-  listarObjetos(objetos.lista, &objetos.tamanholista);
+  listarObjetos(objetos);
 
-  criaArquivo(objetos, ar);
+  criaArquivo(objetos, &arquivo);
 
+  mostraArquivo(arquivo);
   return 0;
 }
 
-/*void mostraArquivo(FILE* f){
+void mostraArquivo(ARQUIVO arquivo){
 
-  f = fopen("objetos.txt", "r");
+  char linha[100];
 
-  if(f != NULL){
+  arquivo.Objetos = fopen(arquivo.nome, "r");
 
-  }
-  
-}*/
-
-void criaArquivo(OBJETOS lista, ARQUIVO arquivo){
-
-  strcpy(arquivo.nome, "objetos.txt");
-
-  if(arquivo.Objetos != NULL){
-    printf("Você está prestes a substituir todo o conteúdo do arquivo pela ultima lista criada\n"
-           "Deseja continuar?\n"); 
+  if(arquivo.Objetos == NULL){
+    printf("Parece que o arquivo não existe!");
   }else{
-    printf("Criando um novo arquivo...\n\n");
-    arquivo.Objetos = fopen(arquivo.nome, "w+");
-        printf("Arquivo criado com sucesso!\n");
-        puts("Usuário \tID\n-------------------\n");
-
+    printf("Mostrando arquivo...\n");
+    while(fgets(linha, sizeof(linha), arquivo.Objetos))
+      printf("%s\n", linha); 
   }
+}
 
-  fclose(arquivo.Objetos);
+void criaArquivo(OBJETOS lista, ARQUIVO* arquivo){
+
+  char* cabecalho = "Usuário \tID\n-------------------\n";
+  int numerolinhas = lista.tamanholista;
+
+  arquivo->Objetos = fopen(arquivo->nome, "r");
+
+  if(arquivo->Objetos == NULL){
+    printf("Criando um novo arquivo...\n\n");
+    arquivo->Objetos = fopen(arquivo->nome, "w");
+    fprintf(arquivo->Objetos, "%d\n", numerolinhas);
+    fputs(cabecalho, arquivo->Objetos);
+    fprintf(arquivo->Objetos, "%s", listarObjetos(lista));
+    printf("Arquivo criado com sucesso!\n");
+  }else{
+    printf("O arquivo ja foi criado, substituindo...\n");
+    arquivo->Objetos = fopen(arquivo->nome, "w");
+    fprintf(arquivo->Objetos, "%d\n", numerolinhas);
+    fputs(cabecalho, arquivo->Objetos);
+    fprintf(arquivo->Objetos, "%s", listarObjetos(lista));
+    printf("O arquivo foi substituido pela nova lista.\n");
+  }
+   
+  fclose(arquivo->Objetos);
 
 }
 
-void modificaObjeto(char* novoNome, int i, OBJETO lista[]){
+void modificaObjeto(char* novoNome, int i, OBJETOS* objetos){
 
   size_t tamanhoNome = strlen(novoNome) +1;
 
   if(i != -1){
-    printf("Alterando objeto: %s\n", lista[i].nome);
+    printf("Alterando objeto: %s\n", objetos->lista[i].nome);
     for(int j = 0; j < tamanhoNome; j++){
-      lista[i].nome[j] = novoNome[j];
+      objetos->lista[i].nome[j] = novoNome[j];
     }
   }
 }
 
-void deletaObjeto(int i, OBJETO lista[], int *tamanho){
+void deletaObjeto(int i, OBJETOS* objetos){
  
   if(i != -1){
-    printf("Deletando objeto: %s\n", lista[i].nome);
-    for(int j = i; j < *tamanho; j++){
-      lista[j] = lista[j+1];
-      (*tamanho)--;
+    printf("Deletando objeto: %s\n", objetos->lista[i].nome);
+    for(int j = i; j < objetos->tamanholista; j++){
+      objetos->lista[j] = objetos->lista[j+1];
     }
   }else{
     printf("Nenhum objeto foi deletado\n\n");
   } 
+  objetos->tamanholista--;
 }
 
-int buscaObjeto(OBJETO* objeto, OBJETO lista[], int* tamanho){
+int buscaObjeto(OBJETO* objeto, OBJETOS objetos){
   
-  for(int i = 0; i < *tamanho; i++){
-    if(objeto->id == lista[i].id){
-      printf("Objeto %s encontrado!\n", lista[i].nome);
+  for(int i = 0; i < objetos.tamanholista; i++){
+    if(objeto->id == objetos.lista[i].id){
+      printf("Objeto %s encontrado!\n", objetos.lista[i].nome);
       return i;
       break;
     }
@@ -154,24 +170,25 @@ int buscaObjeto(OBJETO* objeto, OBJETO lista[], int* tamanho){
 
 
 
-void listarObjetos(OBJETO lista[], int* tamanho){
+char* listarObjetos(OBJETOS objetos){
   
-  char tempStr[1024];
+  char tempStr[1024] = {0};
   char* temp = tempStr;
   
-
   printf("Usuário \tID\n-------------------\n");
-    for(int i = 0; i < *tamanho; i++){
-      snprintf(temp, sizeof(tempStr), "%-15s%d\n", lista[i].nome, lista[i].id);
-      printf("%s", temp);
+    for(int i = 0; i < objetos.tamanholista; i++){
+      char tmp[100];
+      snprintf(tmp, sizeof(tmp), "%-16s%d\n", objetos.lista[i].nome, objetos.lista[i].id);
+      strcat(temp, tmp);
+      printf("%s", tmp);
     }
- 
+ return temp;
 }
 
-void adicionaObjeto(OBJETO* objeto, OBJETO lista[], int* tamanho){
-  lista[objeto->id - 1] = *objeto; 
-  (*tamanho)++;
-
+void adicionaObjeto(OBJETO objeto, OBJETOS* objetos){
+    objetos->lista[objetos->tamanholista] = objeto; 
+    objetos->tamanholista++;
+  
 }
 
 OBJETO criaObjeto(char *nome){
